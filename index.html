@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日能量追蹤器</title>
+    <title>炘炘每日能量追蹤器</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -11,6 +11,7 @@
             margin: 0 auto;
             padding: 20px;
             background: #f0f2f5;
+            writing-mode: horizontal-tb;
         }
         .container {
             background: white;
@@ -75,11 +76,20 @@
             margin-top: 20px;
             background: white;
         }
+        .activity-stats {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .activity-stats-item {
+            padding: 5px 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>每日能量追蹤器</h1>
+        <h1>炘炘每日能量追蹤器</h1>
         
         <div class="initial-setup" id="setupSection">
             <h3>開始新的一天</h3>
@@ -88,7 +98,6 @@
             <input type="number" id="initialEnergy" placeholder="初始能量 (0-100)" min="0" max="100">
             <button onclick="startDay()">開始記錄</button>
         </div>
-
         <div id="mainContent" style="display:none;">
             <div class="quote" id="quoteDisplay"></div>
             
@@ -126,7 +135,6 @@
                 
                 <button onclick="addActivity()">添加活動</button>
             </div>
-
             <div class="summary">
                 <h3>總結</h3>
                 <p>日期：<span id="displayDate"></span></p>
@@ -136,11 +144,12 @@
                 <p>當前能量：<span id="currentEnergy">0</span>%</p>
                 <canvas id="energyChart"></canvas>
             </div>
-
+            <div class="activity-stats" id="activityStats">
+                <h3>活動統計</h3>
+            </div>
             <div id="log"></div>
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const quotes = [
@@ -166,22 +175,18 @@
             "我有能力堅持下去保持堅強",
             "我認可自己深深愛着自己"
         ];
-
         let activities = [];
         let initialEnergy = 0;
         let energyChart = null;
 
-        // 設置選擇器的事件監聽
         document.getElementById('activityType').addEventListener('change', function() {
             document.getElementById('customActivity').style.display = 
                 this.value === 'custom' ? 'block' : 'none';
         });
-
         document.getElementById('duration').addEventListener('change', function() {
             document.getElementById('customDuration').style.display = 
                 this.value === 'custom' ? 'block' : 'none';
         });
-
         document.getElementById('energyChange').addEventListener('change', function() {
             document.getElementById('customEnergy').style.display = 
                 this.value === 'custom' ? 'block' : 'none';
@@ -190,7 +195,6 @@
         function getRandomQuote() {
             return quotes[Math.floor(Math.random() * quotes.length)];
         }
-
         function formatTime(time) {
             if (typeof time === 'string') {
                 return time;
@@ -201,17 +205,14 @@
                 minute: '2-digit'
             });
         }
-
         function startDay() {
             const date = document.getElementById('currentDate').value;
             const time = document.getElementById('startTime').value;
             initialEnergy = parseInt(document.getElementById('initialEnergy').value);
-
             if (!date || !time || isNaN(initialEnergy) || initialEnergy < 0 || initialEnergy > 100) {
                 alert('請填寫所有欄位，能量值需在0-100之間');
                 return;
             }
-
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
             document.getElementById('displayDate').textContent = date;
@@ -222,7 +223,6 @@
             
             initChart();
         }
-
         function initChart() {
             const ctx = document.getElementById('energyChart').getContext('2d');
             energyChart = new Chart(ctx, {
@@ -272,63 +272,75 @@
                 }
             });
         }
-
         function updateChart() {
             if (!energyChart) return;
-
             const timePoints = [formatTime(document.getElementById('startTime').value)];
             const energyPoints = [initialEnergy];
             let currentEnergy = initialEnergy;
-
             activities.forEach(activity => {
                 currentEnergy += activity.energyChange;
                 currentEnergy = Math.min(Math.max(currentEnergy, 0), 100);
                 timePoints.push(formatTime(activity.timestamp));
                 energyPoints.push(currentEnergy);
             });
-
             energyChart.data.labels = timePoints;
             energyChart.data.datasets[0].data = energyPoints;
             energyChart.update();
         }
+        function updateActivityStats() {
+            const stats = {};
+            activities.forEach(activity => {
+                if (!stats[activity.name]) {
+                    stats[activity.name] = {
+                        totalDuration: 0,
+                        count: 0
+                    };
+                }
+                stats[activity.name].totalDuration += activity.duration;
+                stats[activity.name].count += 1;
+            });
 
+            const statsDiv = document.getElementById('activityStats');
+            statsDiv.innerHTML = '<h3>活動統計</h3>';
+            
+            Object.entries(stats).forEach(([activity, data]) => {
+                const div = document.createElement('div');
+                div.className = 'activity-stats-item';
+                div.textContent = `${activity}: 總時間 ${data.totalDuration} 分鐘 (${data.count} 次)`;
+                statsDiv.appendChild(div);
+            });
+        }
         function addActivity() {
             const typeSelect = document.getElementById('activityType');
             const durationSelect = document.getElementById('duration');
             const energySelect = document.getElementById('energyChange');
-
             let activityName = typeSelect.value === 'custom' ? 
                               document.getElementById('customActivity').value :
                               typeSelect.value;
-
             let duration = durationSelect.value === 'custom' ?
                           parseFloat(document.getElementById('customDuration').value) :
                           parseFloat(durationSelect.value);
-
             let energyChange = energySelect.value === 'custom' ?
                               parseFloat(document.getElementById('customEnergy').value) :
                               parseFloat(energySelect.value);
-
             if (!activityName || isNaN(duration) || isNaN(energyChange)) {
                 alert('請填寫所有欄位');
                 return;
             }
-
             const activity = {
                 name: activityName,
                 duration: duration,
                 energyChange: energyChange,
                 timestamp: new Date()
             };
-
             activities.push(activity);
             updateLog();
             updateSummary();
             updateChart();
+            updateActivityStats();
             clearInputs();
             document.getElementById('quoteDisplay').textContent = getRandomQuote();
         }
-
         function updateLog() {
             const log = document.getElementById('log');
             log.innerHTML = '';
@@ -346,7 +358,6 @@
                 log.appendChild(div);
             });
         }
-
         function updateSummary() {
             const totalDuration = activities.reduce((sum, act) => sum + act.duration, 0);
             const totalEnergyChange = activities.reduce((sum, act) => sum + act.energyChange, 0);
@@ -356,14 +367,13 @@
             document.getElementById('currentEnergy').textContent = 
                 Math.min(Math.max(currentEnergy, 0), 100);
         }
-
         function deleteActivity(index) {
             activities.splice(index, 1);
             updateLog();
             updateSummary();
             updateChart();
+            updateActivityStats();
         }
-
         function clearInputs() {
             document.getElementById('activityType').value = '運動';
             document.getElementById('customActivity').value = '';
@@ -375,8 +385,6 @@
             document.getElementById('customEnergy').value = '';
             document.getElementById('customEnergy').style.display = 'none';
         }
-
-        // 設定今天的日期為默認值
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('currentDate').value = today;
         const now = new Date().toTimeString().slice(0,5);
