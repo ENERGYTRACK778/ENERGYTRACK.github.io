@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日能量追蹤器</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        input, select, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            background: #0066ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #0052cc;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        #log {
+            margin-top: 20px;
+        }
+        .activity-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .custom-input {
+            display: none;
+        }
+        .quote {
+            padding: 15px;
+            background: #e6f3ff;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-style: italic;
+        }
+        .initial-setup {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        #energyChart {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>每日能量追蹤器</h1>
+        
+        <div class="initial-setup" id="setupSection">
+            <h3>開始新的一天</h3>
+            <input type="date" id="currentDate">
+            <input type="time" id="startTime" step="1">
+            <input type="number" id="initialEnergy" placeholder="初始能量 (0-100)" min="0" max="100">
+            <button onclick="startDay()">開始記錄</button>
+        </div>
+
+        <div id="mainContent" style="display:none;">
+            <div class="quote" id="quoteDisplay"></div>
+            
+            <div class="input-group">
+                <select id="activityType">
+                    <option value="運動">運動</option>
+                    <option value="工作">工作</option>
+                    <option value="洗澡">洗澡</option>
+                    <option value="看劇">看劇</option>
+                    <option value="交通">交通</option>
+                    <option value="社交">社交</option>
+                    <option value="學習">學習</option>
+                    <option value="煮飯">煮飯</option>
+                    <option value="吃飯">吃飯</option>
+                    <option value="custom">自定義...</option>
+                </select>
+                <input type="text" id="customActivity" class="custom-input" placeholder="輸入自定義活動">
+                
+                <select id="duration">
+                    <option value="30">30分鐘</option>
+                    <option value="60">60分鐘</option>
+                    <option value="120">120分鐘</option>
+                    <option value="custom">自定義...</option>
+                </select>
+                <input type="number" id="customDuration" class="custom-input" placeholder="自定義時間（分鐘）">
+                
+                <select id="energyChange">
+                    <option value="10">+10</option>
+                    <option value="-10">-10</option>
+                    <option value="15">+15</option>
+                    <option value="-15">-15</option>
+                    <option value="custom">自定義...</option>
+                </select>
+                <input type="number" id="customEnergy" class="custom-input" placeholder="自定義能量變化">
+                
+                <button onclick="addActivity()">添加活動</button>
+            </div>
+
+            <div class="summary">
+                <h3>總結</h3>
+                <p>日期：<span id="displayDate"></span></p>
+                <p>開始時間：<span id="displayStartTime"></span></p>
+                <p>初始能量：<span id="displayInitialEnergy"></span>%</p>
+                <p>總時間：<span id="totalDuration">0</span> 分鐘</p>
+                <p>當前能量：<span id="currentEnergy">0</span>%</p>
+                <canvas id="energyChart"></canvas>
+            </div>
+
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const quotes = [
+            "我以冷靜和自信迎接今天",
+            "我就是最好的自己",
+            "我現在化解舊的模式讓新的模式出現",
+            "我樂意接受積極的人和經驗進入我的生活",
+            "我會從中恢復並再次感受到快樂",
+            "我允許自己感受自己所有的情緒，而且仍然愛自己",
+            "我創造自己的積極能量",
+            "我無條件地接受自己",
+            "我在思想身體和精神上培養平靜的力量",
+            "我的心會療癒",
+            "我很健康快樂，而且容光煥發",
+            "無論周圍發生什麼都不會影響我沉着冷靜的態度",
+            "一切都在一天天地變好",
+            "當我走出舒適圈時，我的信心就會增強",
+            "我放下所有阻礙我發展的消極力量",
+            "我散發出自信和熱情",
+            "我相信自己也相信生命",
+            "儘管有所損失，我的生活還是有意義的",
+            "我的身體值得被關愛",
+            "我有能力堅持下去保持堅強",
+            "我認可自己深深愛着自己"
+        ];
+
+        let activities = [];
+        let initialEnergy = 0;
+        let energyChart = null;
+
+        // 設置選擇器的事件監聽
+        document.getElementById('activityType').addEventListener('change', function() {
+            document.getElementById('customActivity').style.display = 
+                this.value === 'custom' ? 'block' : 'none';
+        });
+
+        document.getElementById('duration').addEventListener('change', function() {
+            document.getElementById('customDuration').style.display = 
+                this.value === 'custom' ? 'block' : 'none';
+        });
+
+        document.getElementById('energyChange').addEventListener('change', function() {
+            document.getElementById('customEnergy').style.display = 
+                this.value === 'custom' ? 'block' : 'none';
+        });
+        
+        function getRandomQuote() {
+            return quotes[Math.floor(Math.random() * quotes.length)];
+        }
+
+        function formatTime(time) {
+            if (typeof time === 'string') {
+                return time;
+            }
+            return time.toLocaleTimeString('zh-TW', { 
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function startDay() {
+            const date = document.getElementById('currentDate').value;
+            const time = document.getElementById('startTime').value;
+            initialEnergy = parseInt(document.getElementById('initialEnergy').value);
+
+            if (!date || !time || isNaN(initialEnergy) || initialEnergy < 0 || initialEnergy > 100) {
+                alert('請填寫所有欄位，能量值需在0-100之間');
+                return;
+            }
+
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('displayDate').textContent = date;
+            document.getElementById('displayStartTime').textContent = time;
+            document.getElementById('displayInitialEnergy').textContent = initialEnergy;
+            document.getElementById('currentEnergy').textContent = initialEnergy;
+            document.getElementById('quoteDisplay').textContent = getRandomQuote();
+            
+            initChart();
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('energyChart').getContext('2d');
+            energyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [formatTime(document.getElementById('startTime').value)],
+                    datasets: [{
+                        label: '能量水平',
+                        data: [initialEnergy],
+                        borderColor: '#0066ff',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: '能量水平'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '時間'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const activity = index > 0 ? activities[index - 1] : null;
+                                    let label = `能量: ${context.parsed.y}%`;
+                                    if (activity) {
+                                        label += ` (${activity.name})`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!energyChart) return;
+
+            const timePoints = [formatTime(document.getElementById('startTime').value)];
+            const energyPoints = [initialEnergy];
+            let currentEnergy = initialEnergy;
+
+            activities.forEach(activity => {
+                currentEnergy += activity.energyChange;
+                currentEnergy = Math.min(Math.max(currentEnergy, 0), 100);
+                timePoints.push(formatTime(activity.timestamp));
+                energyPoints.push(currentEnergy);
+            });
+
+            energyChart.data.labels = timePoints;
+            energyChart.data.datasets[0].data = energyPoints;
+            energyChart.update();
+        }
+
+        function addActivity() {
+            const typeSelect = document.getElementById('activityType');
+            const durationSelect = document.getElementById('duration');
+            const energySelect = document.getElementById('energyChange');
+
+            let activityName = typeSelect.value === 'custom' ? 
+                              document.getElementById('customActivity').value :
+                              typeSelect.value;
+
+            let duration = durationSelect.value === 'custom' ?
+                          parseFloat(document.getElementById('customDuration').value) :
+                          parseFloat(durationSelect.value);
+
+            let energyChange = energySelect.value === 'custom' ?
+                              parseFloat(document.getElementById('customEnergy').value) :
+                              parseFloat(energySelect.value);
+
+            if (!activityName || isNaN(duration) || isNaN(energyChange)) {
+                alert('請填寫所有欄位');
+                return;
+            }
+
+            const activity = {
+                name: activityName,
+                duration: duration,
+                energyChange: energyChange,
+                timestamp: new Date()
+            };
+
+            activities.push(activity);
+            updateLog();
+            updateSummary();
+            updateChart();
+            clearInputs();
+            document.getElementById('quoteDisplay').textContent = getRandomQuote();
+        }
+
+        function updateLog() {
+            const log = document.getElementById('log');
+            log.innerHTML = '';
+            
+            activities.forEach((activity, index) => {
+                const time = formatTime(activity.timestamp);
+                const div = document.createElement('div');
+                div.className = 'activity-item';
+                div.innerHTML = `
+                    ${time} - ${activity.name} - 
+                    ${activity.duration}分鐘 - 
+                    能量變化：${activity.energyChange > 0 ? '+' + activity.energyChange : activity.energyChange}
+                    <button onclick="deleteActivity(${index})" style="float:right">刪除</button>
+                `;
+                log.appendChild(div);
+            });
+        }
+
+        function updateSummary() {
+            const totalDuration = activities.reduce((sum, act) => sum + act.duration, 0);
+            const totalEnergyChange = activities.reduce((sum, act) => sum + act.energyChange, 0);
+            const currentEnergy = initialEnergy + totalEnergyChange;
+            
+            document.getElementById('totalDuration').textContent = totalDuration;
+            document.getElementById('currentEnergy').textContent = 
+                Math.min(Math.max(currentEnergy, 0), 100);
+        }
+
+        function deleteActivity(index) {
+            activities.splice(index, 1);
+            updateLog();
+            updateSummary();
+            updateChart();
+        }
+
+        function clearInputs() {
+            document.getElementById('activityType').value = '運動';
+            document.getElementById('customActivity').value = '';
+            document.getElementById('customActivity').style.display = 'none';
+            document.getElementById('duration').value = '30';
+            document.getElementById('customDuration').value = '';
+            document.getElementById('customDuration').style.display = 'none';
+            document.getElementById('energyChange').value = '10';
+            document.getElementById('customEnergy').value = '';
+            document.getElementById('customEnergy').style.display = 'none';
+        }
+
+        // 設定今天的日期為默認值
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('currentDate').value = today;
+        const now = new Date().toTimeString().slice(0,5);
+        document.getElementById('startTime').value = now;
+    </script>
+</body>
+</html>
