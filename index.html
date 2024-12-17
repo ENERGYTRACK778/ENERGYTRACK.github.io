@@ -4,6 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>每日能量追蹤器</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>每日能量追蹤器</h1>
+        
+        <div class="initial-setup" id="setupSection">
+            <h3>開始新的一天</h3>
+            <input type="date" id="currentDate">
+            <input type="time" id="startTime" step="1">
+            <input type="number" id="initialEnergy" placeholder="初始能量 (0-100)" min="0" max="100">
+            <button onclick="startDay()">開始記錄</button>
+        </div>
+        <div id="mainContent" style="display:none;">
+            <div class="quote" id="quoteDisplay"></div>
+            
+            <div class="input-group">
+                <select id="activityType">
+                    <option value="運動">運動</option>
+                    <option value="工作">工作</option>
+                    <option value="洗澡">洗澡</option>
+                    <option value="看劇">看劇</option>
+                    <option value="交通">交通</option>
+                    <option value="社交">社交</option>
+                    <option value="學習">學習</option>
+                    <option value="煮飯">煮飯</option>
+                    <option value="吃飯">吃飯</option>
+                    <option value="custom">自定義...</option>
+                </select>
+                <input type="text" id="customActivity" class="custom-input" placeholder="輸入自定義活動">
+                
+                <select id="duration">
+                    <option value="30">30分鐘</option>
+                    <option value="60">60分鐘</option>
+                    <option value="120">120分鐘</option>
+                    <option value="custom">自定義...</option>
+                </select>
+                <input type="number" id="customDuration" class="custom-input" placeholder="自定義時間（分鐘）">
+                
+                <select id="energyChange">
+                    <option value="10">+10</option>
+                    <option value="-10">-10</option>
+                    <option value="15">+15</option>
+                    <option value="-15">-15</option>
+                    <option value="custom">自定義...</option>
+                </select>
+                <input type="number" id="customEnergy" class="custom-input" placeholder="自定義能量變化">
+                
+                <button onclick="addActivity()">添加活動</button>
+            </div>
+            <div class="summary">
+                <h3>總結</h3>
+                <p>日期：<span id="displayDate"></span></p>
+                <p>開始時間：<span id="displayStartTime"></span></p>
+                <p>初始能量：<span id="displayInitialEnergy"></span>%</p>
+                <p>總時間：<span id="totalDuration">0</span> 分鐘</p>
+                <p>當前能量：<span id="currentEnergy">0</span>%</p>
+                <canvas id="energyChart"></canvas>
+            </div>
+            <div class="activity-stats" id="activityStats">
+                <h3>活動統計</h3>
+            </div>
+            <div id="log"></div>
+        </div>
+    </div>
+
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -86,71 +152,7 @@
             padding: 5px 0;
         }
     </style>
-</head>
-<body>
-    <div class="container">
-        <h1>每日能量追蹤器</h1>
-        
-        <div class="initial-setup" id="setupSection">
-            <h3>開始新的一天</h3>
-            <input type="date" id="currentDate">
-            <input type="time" id="startTime" step="1">
-            <input type="number" id="initialEnergy" placeholder="初始能量 (0-100)" min="0" max="100">
-            <button onclick="startDay()">開始記錄</button>
-        </div>
-        <div id="mainContent" style="display:none;">
-            <div class="quote" id="quoteDisplay"></div>
-            
-            <div class="input-group">
-                <select id="activityType">
-                    <option value="運動">運動</option>
-                    <option value="工作">工作</option>
-                    <option value="洗澡">洗澡</option>
-                    <option value="看劇">看劇</option>
-                    <option value="交通">交通</option>
-                    <option value="社交">社交</option>
-                    <option value="學習">學習</option>
-                    <option value="煮飯">煮飯</option>
-                    <option value="吃飯">吃飯</option>
-                    <option value="custom">自定義...</option>
-                </select>
-                <input type="text" id="customActivity" class="custom-input" placeholder="輸入自定義活動">
-                
-                <select id="duration">
-                    <option value="30">30分鐘</option>
-                    <option value="60">60分鐘</option>
-                    <option value="120">120分鐘</option>
-                    <option value="custom">自定義...</option>
-                </select>
-                <input type="number" id="customDuration" class="custom-input" placeholder="自定義時間（分鐘）">
-                
-                <select id="energyChange">
-                    <option value="10">+10</option>
-                    <option value="-10">-10</option>
-                    <option value="15">+15</option>
-                    <option value="-15">-15</option>
-                    <option value="custom">自定義...</option>
-                </select>
-                <input type="number" id="customEnergy" class="custom-input" placeholder="自定義能量變化">
-                
-                <button onclick="addActivity()">添加活動</button>
-            </div>
-            <div class="summary">
-                <h3>總結</h3>
-                <p>日期：<span id="displayDate"></span></p>
-                <p>開始時間：<span id="displayStartTime"></span></p>
-                <p>初始能量：<span id="displayInitialEnergy"></span>%</p>
-                <p>總時間：<span id="totalDuration">0</span> 分鐘</p>
-                <p>當前能量：<span id="currentEnergy">0</span>%</p>
-                <canvas id="energyChart"></canvas>
-            </div>
-            <div class="activity-stats" id="activityStats">
-                <h3>活動統計</h3>
-            </div>
-            <div id="log"></div>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         const quotes = [
             "我以冷靜和自信迎接今天",
@@ -195,6 +197,7 @@
         function getRandomQuote() {
             return quotes[Math.floor(Math.random() * quotes.length)];
         }
+
         function formatTime(time) {
             if (typeof time === 'string') {
                 return time;
@@ -205,6 +208,7 @@
                 minute: '2-digit'
             });
         }
+
         function startDay() {
             const date = document.getElementById('currentDate').value;
             const time = document.getElementById('startTime').value;
@@ -223,6 +227,7 @@
             
             initChart();
         }
+
         function initChart() {
             const ctx = document.getElementById('energyChart').getContext('2d');
             energyChart = new Chart(ctx, {
@@ -272,6 +277,7 @@
                 }
             });
         }
+
         function updateChart() {
             if (!energyChart) return;
             const timePoints = [formatTime(document.getElementById('startTime').value)];
@@ -287,6 +293,7 @@
             energyChart.data.datasets[0].data = energyPoints;
             energyChart.update();
         }
+
         function updateActivityStats() {
             const stats = {};
             activities.forEach(activity => {
@@ -310,6 +317,7 @@
                 statsDiv.appendChild(div);
             });
         }
+
         function addActivity() {
             const typeSelect = document.getElementById('activityType');
             const durationSelect = document.getElementById('duration');
@@ -341,6 +349,7 @@
             clearInputs();
             document.getElementById('quoteDisplay').textContent = getRandomQuote();
         }
+
         function updateLog() {
             const log = document.getElementById('log');
             log.innerHTML = '';
@@ -358,15 +367,16 @@
                 log.appendChild(div);
             });
         }
+
         function updateSummary() {
             const totalDuration = activities.reduce((sum, act) => sum + act.duration, 0);
             const totalEnergyChange = activities.reduce((sum, act) => sum + act.energyChange, 0);
-            const currentEnergy = initialEnergy + totalEnergyChange;
+            const currentEnergy = Math.min(Math.max(initialEnergy + totalEnergyChange, 0), 100);
             
             document.getElementById('totalDuration').textContent = totalDuration;
-            document.getElementById('currentEnergy').textContent = 
-                Math.min(Math.max(currentEnergy, 0), 100);
+            document.getElementById('currentEnergy').textContent = currentEnergy;
         }
+
         function deleteActivity(index) {
             activities.splice(index, 1);
             updateLog();
@@ -374,6 +384,7 @@
             updateChart();
             updateActivityStats();
         }
+
         function clearInputs() {
             document.getElementById('activityType').value = '運動';
             document.getElementById('customActivity').value = '';
@@ -385,6 +396,8 @@
             document.getElementById('customEnergy').value = '';
             document.getElementById('customEnergy').style.display = 'none';
         }
+
+        // 初始化日期和時間
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('currentDate').value = today;
         const now = new Date().toTimeString().slice(0,5);
